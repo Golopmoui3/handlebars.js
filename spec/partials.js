@@ -138,6 +138,42 @@ describe('partials', function () {
       .toCompileTo('Dudes: barYehuda (http://yehuda) barAlan (http://alan) ');
   });
 
+  it('should not destroy class instances passed as partial context with hash', function () {
+    function Person(name) {
+      this.name = name;
+    }
+    Person.prototype.greet = function () {
+      return 'Hello, ' + this.name;
+    };
+
+    expectTemplate('{{> personPartial this extra="!"}}')
+      .withInput(new Person('Alice'))
+      .withHelper('greetHelper', function () {
+        return this.greet();
+      })
+      .withPartial('personPartial', '{{greetHelper}} {{name}}{{extra}}')
+      .withMessage(
+        'class instance passed as partial context should keep its prototype'
+      )
+      .toCompileTo('Hello, Alice Alice!');
+  });
+
+  it('should still merge hash values into a plain object partial context', function () {
+    expectTemplate('{{> plainPartial this suffix="!"}}')
+      .withInput({ name: 'World' })
+      .withPartial('plainPartial', '{{name}}{{suffix}}')
+      .withMessage('plain object partial context should receive hash values')
+      .toCompileTo('World!');
+  });
+
+  it('should keep plain hash merging for Map partial contexts', function () {
+    expectTemplate('{{> mapPartial this key="!"}}')
+      .withInput(new Map([['entry', 'mapValue']]))
+      .withPartial('mapPartial', '{{key}}')
+      .withMessage('Map partial context should keep receiving hash values')
+      .toCompileTo('!');
+  });
+
   it('partial in a partial', function () {
     expectTemplate('Dudes: {{#dudes}}{{>dude}}{{/dudes}}')
       .withInput({
